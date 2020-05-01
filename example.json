@@ -1,0 +1,58 @@
+{
+	"options": {
+		"mock_interfaces":		"interface/"
+	},
+	"hosts": {
+		"big-machine":			"192.168.1.2",
+		"little-machine":		"192.168.1.29",
+		"broadcast":			"255.255.255.255",
+		"ipv6-tunnel-peer":		"1.2.3.4"
+	},
+	"interfaces": {
+		"eth0":			"internal",
+		"eth1.123":		"external",
+		"wlan0-ext":	"wlan-guest",
+		"wlan0-int":	"wlan-internal"
+	},
+	"chains": {
+		"input": {
+			"rules": [
+				{ "action": "reject", "dest-service": "dns/*", "criterion": { "type": "dns-block", "dns-name": "gramho.com" }, "cond": { "timewindow": "22-7" }, "comment": "block gramho.com" },
+				{ "action": "accept", "proto": "tcp, udp", "criterion": { "type": "state", "state": "established/related" }, "comment": "allow established connections" },
+				{ "action": "accept", "dest-service": "ssh", "comment": "allow ssh from everywhere" },
+				{ "action": "accept", "src-net": "!external", "dest-service": "dns/*, ntp, dhcps, 23170/udp+tcp", "comment": "allow DNS, NTP, DHCP, luksrku from all internal networks" },
+				{ "action": "accept", "src-net": "!external", "dest-service": "dhcps", "dest-host": "broadcast", "comment": "allow DHCP to broadcast" },
+				{ "action": "accept", "src-net": "!external", "icmp-type": "ping, pong, dest-unreachable, time-exceeded", "comment": "allow basic ICMP messages" },
+				{ "action": "accept", "src-host": "ipv6-tunnel-peer", "proto": "ipv6-encapsulation", "comment": "allow IPv6 encapsulation" }
+			],
+			"default": "drop"
+		},
+		"output": {
+			"default": "accept"
+		},
+		"forward": {
+			"rules": [
+				{ "action": "reject", "dest-service": "http,https", "dest-host": "reddit.com,gateway.reddit.com,www.reddit.com,redditmedia.com,www.redditstatic.com,reddit.map.fastly.net,i.redd.it,external-preview.redd.it", "comment": "block reddit.com" },
+				{ "action": "reject", "dest-service": "dns/*", "criterion": { "type": "dns-block", "dns-name": "gramho.com" }, "cond": { "timewindow": "22-7" }, "comment": "block gramho.com" },
+				{ "action": "accept", "proto": "tcp, udp, icmp", "criterion": { "type": "state", "state": "established/related" }, "comment": "allow established connections" },
+				{ "action": "accept", "src-net": "internal", "comment": "route everything from internal network" },
+				{ "action": "accept", "src-net": "wlan-internal", "dest-if": "external", "comment": "NAT all internal WiFi traffic outside" },
+				{ "action": "accept", "src-net": "wlan-guest", "dest-service": "ssh,http,https,smtps,imaps,pop3s", "dest-if": "external", "comment": "NAT some guest WiFi traffic outside" },
+				{ "action": "log", "msg": "FWD Drop" }
+			],
+			"default": "drop"
+		},
+		"nat.postrouting": {
+			"rules": [
+				{ "action": "masquerade", "dest-if": "external", "comment": "perform IP masquerading" }
+			],
+			"default": "accept"
+		},
+		"nat.prerouting": {
+			"rules": [
+				{ "action": "port-forward", "dest-ifaddr": "external", "dest-service": "1200-1300/tcp", "forward-to": "little-machine", "comment": "port forward awesome service to little-machine" }
+			],
+			"default": "accept"
+		}
+	}
+}
