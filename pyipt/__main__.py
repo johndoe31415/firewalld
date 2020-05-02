@@ -22,6 +22,7 @@
 
 import sys
 import time
+import datetime
 from pyipt.FriendlyArgumentParser import FriendlyArgumentParser
 from pyipt.Firewall import Firewall
 
@@ -29,6 +30,7 @@ parser = FriendlyArgumentParser(description = "Linux firewall daemon.")
 parser.add_argument("-m", "--mode", choices = [ "script", "oneshot", "daemonize" ], default = "script", help = "Mode in which firewalld operates. Can be one of %(choices)s, defaults to %(default)s.")
 parser.add_argument("--iteration-time", metavar = "secs", type = float, default = 60, help = "For daemonized mode, gives the iteration time in seconds. Defaults to %(default).0f seconds.")
 parser.add_argument("--ignore-errors", action = "store_true", help = "If rules cannot be resolved, e.g., because an interface does not exist, continue. This can be dangerous.")
+parser.add_argument("--dump-scripts", metavar = "dirname", type = str, help = "Dump all rulesets into a file; useful for debugging what is changing between versions.")
 parser.add_argument("-o", "--output", metavar = "file", type = str, default = "firewall.sh", help = "When writing a script, gives the output filename. Can be '-' for stdout. Defaults to %(default)s.")
 parser.add_argument("-v", "--verbose", action = "count", default = 0, help = "Increases verbosity. Can be specified multiple times to increase.")
 parser.add_argument("ruleset", metavar = "ruleset", type = str, help = "Ruleset JSON file to load.")
@@ -48,7 +50,11 @@ elif (args.mode == "oneshot") or (args.mode == "daemonize"):
 	while True:
 		current_hash = ruleset.hash()
 		if current_hash != last_hash:
-			print("Applying ruleset (old hash %s new hash %s)." % (last_hash, new_hash))
+			print("Applying ruleset (old hash %s new hash %s)." % (last_hash, current_hash), file = sys.stderr)
+			if args.dump_scripts is not None:
+				dump_filename = args.dump_scripts + "/" + datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + "_" + current_hash + ".sh"
+				with open(dump_filename, "w") as f:
+					ruleset.write_script(f, verbose = True)
 			ruleset.apply()
 			last_hash = current_hash
 		if args.mode == "oneshot":
