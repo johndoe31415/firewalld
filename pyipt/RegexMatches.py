@@ -29,7 +29,7 @@ class RegexMatch():
 	def __init__(self, regex_str):
 		match = self._REGEX.fullmatch(regex_str)
 		if match is None:
-			raise UnknownTypeError("The value provided does not fulfill the regex of %s." % (self.__class__.__name__))
+			raise UnknownTypeError("The value provided (\"%s\") does not fulfill the regex of %s." % (regex_str, self.__class__.__name__))
 
 		self._values = match.groupdict()
 		if self._CONVERSIONS is not None:
@@ -41,7 +41,7 @@ class RegexMatch():
 		return self._values[key]
 
 class PortforwardTarget(RegexMatch):
-	_REGEX = re.compile(r"(?P<hostname>[a-zA-Z][.0-9a-zA-Z]*)(:(?P<port>(?P<relative>[+-])?\d+))?")
+	_REGEX = re.compile(r"(?P<hostname>[a-zA-Z][-.0-9a-zA-Z]*)(:(?P<port>(?P<relative>[+-])?\d+))?")
 	_CONVERSIONS = {
 		"port":			int,
 	}

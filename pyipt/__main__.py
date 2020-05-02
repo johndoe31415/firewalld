@@ -44,8 +44,13 @@ if args.mode == "script":
 			ruleset.write_script(f, verbose = (args.verbose >= 1))
 	sys.exit(0)
 elif (args.mode == "oneshot") or (args.mode == "daemonize"):
+	last_hash = None
 	while True:
-		ruleset.apply()
+		current_hash = ruleset.hash()
+		if current_hash != last_hash:
+			print("Applying ruleset (old hash %s new hash %s)." % (last_hash, new_hash))
+			ruleset.apply()
+			last_hash = current_hash
 		if args.mode == "oneshot":
 			sys.exit(0)
 		time.sleep(args.iteration_time)

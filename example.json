@@ -3,8 +3,8 @@
 		"mock_interfaces":		"interface/"
 	},
 	"hosts": {
-		"big-machine":			"192.168.1.2",
-		"little-machine":		"192.168.1.29",
+		"big-machine":				"192.168.1.2",
+		"little-machine":					"192.168.1.29",
 		"broadcast":			"255.255.255.255",
 		"ipv6-tunnel-peer":		"1.2.3.4"
 	},

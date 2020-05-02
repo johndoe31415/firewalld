@@ -22,6 +22,8 @@
 import os
 import itertools
 import datetime
+import subprocess
+import hashlib
 from pyipt.CmdlineEscape import CmdlineEscape
 
 class Rule():
@@ -119,9 +121,15 @@ class Ruleset():
 	def add_rules(self, rules):
 		self._rules.append(rules)
 
+	def generate(self):
+		for rules in self._rules:
+			for rule in rules:
+				yield from rule.generate_commands()
+
 	def write_script(self, f, verbose = False):
 		cle = CmdlineEscape()
 		print("#!/bin/bash", file = f)
+		print("# hash %s" % (self.hash()), file = f)
 		print("# firewall ruleset generated %s UTC by firewalld. DO NOT EDIT MANUALLY" % (datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")), file = f)
 		print(file = f)
 		for rules in self._rules:
@@ -138,4 +146,12 @@ class Ruleset():
 			print(file = f)
 
 	def apply(self):
-		pass
+		for command in self.generate():
+			command = [ "iptables" ] + command
+			subprocess.check_call(command)
+
+	def hash(self):
+		hashval = hashlib.md5()
+		for command in self.generate():
+			hashval.update(str(command).encode("utf-8"))
+		return hashval.hexdigest()
