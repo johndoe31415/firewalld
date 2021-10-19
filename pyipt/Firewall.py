@@ -1,5 +1,5 @@
 #	firewalld - Linux firewall daemon with time-based capabilities
-#	Copyright (C) 2020-2020 Johannes Bauer
+#	Copyright (C) 2020-2021 Johannes Bauer
 #
 #	This file is part of firewalld.
 #
@@ -34,6 +34,7 @@ from pyipt.RegexMatches import PortforwardTarget
 from pyipt.Chain import Chain
 from pyipt.Exceptions import IncompatibleOptionsException, UnknownTypeError, FirewallRulesetException
 from pyipt.Criterion import Criterion
+from pyipt.Variables import Variables
 
 class RuleType(enum.Enum):
 	Accept = "accept"
@@ -67,11 +68,12 @@ class HighlevelRule():
 		"src-if":			InterfaceName,
 	}
 
-	def __init__(self, rule_src, config):
+	def __init__(self, rule_src, config, variables):
 		self._rule_src = rule_src
 		self._config = config
 		self._parsed = { }
 		for (key, value) in self._rule_src.items():
+			value = variables.recursive_replace(value)
 			if key.startswith("_"):
 				continue
 			if key in self._SIMPLE_PARSE_CLASSES:
@@ -238,7 +240,7 @@ class Firewall():
 		if "rules" in content:
 			for rulesrc in content["rules"]:
 				try:
-					hl_rule = HighlevelRule(rulesrc, ruleset.metadata["source"])
+					hl_rule = HighlevelRule(rulesrc, ruleset.metadata["source"], ruleset.metadata["variables"])
 					hl_rule.insert(chain_name, ruleset)
 				except FirewallRulesetException as e:
 					if not self._args.ignore_errors:
@@ -269,8 +271,9 @@ class Firewall():
 			source = json.load(f)
 		source["interfaces-rev"] = { value: key for (key, value) in source["interfaces"].items() }
 		metadata = {
-			"now":		datetime.datetime.now(),
-			"source":	source,
+			"now":			datetime.datetime.now(),
+			"source":		source,
+			"variables":	Variables(source.get("variables", { })),
 		}
 		ruleset = Ruleset(metadata)
 		ruleset.add_stat("ruleset_mtime", self._ruleset_filename)

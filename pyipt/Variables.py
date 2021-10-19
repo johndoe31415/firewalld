@@ -1,5 +1,5 @@
 #	firewalld - Linux firewall daemon with time-based capabilities
-#	Copyright (C) 2020-2020 Johannes Bauer
+#	Copyright (C) 2020-2021 Johannes Bauer
 #
 #	This file is part of firewalld.
 #
@@ -62,6 +62,19 @@ class Variables():
 		for (key, value) in sorted(self._resolved_vars.items()):
 			print("%s = %s" % (key, value))
 
+	def recursive_replace(self, values):
+		if isinstance(values, str):
+			return self._substitute(values)
+		elif isinstance(values, int):
+			return values
+		elif isinstance(values, dict):
+			return { key: self.recursive_replace(value) for (key, value) in values.items() }
+		elif isinstance(values, list):
+			return [ self.recursive_replace(value) for value in values ]
+		else:
+			raise ValueError("Unsupported input type: %s" % (values))
+
+
 if __name__ == "__main__":
 	v = Variables({
 		"foo":	"FOO",
@@ -74,3 +87,10 @@ if __name__ == "__main__":
 		},
 	})
 	v.dump()
+	print(v.recursive_replace({
+		"foo":	"foo = ${foo}",
+		"bar": {
+			"moo": "bar = ${bar}",
+			"q": [ 1, 2, 3, "a = ${a}" ],
+		},
+	}))
