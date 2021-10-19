@@ -60,3 +60,4 @@ elif (args.mode == "oneshot") or (args.mode == "daemonize"):
 		if args.mode == "oneshot":
 			sys.exit(0)
 		time.sleep(args.iteration_time)
+		ruleset = fw.generate()
