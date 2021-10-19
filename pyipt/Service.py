@@ -1,5 +1,5 @@
 #	firewalld - Linux firewall daemon with time-based capabilities
-#	Copyright (C) 2020-2020 Johannes Bauer
+#	Copyright (C) 2020-2021 Johannes Bauer
 #
 #	This file is part of firewalld.
 #
@@ -62,8 +62,10 @@ class Service():
 			if (specified_proto == "*") or ((specified_proto is None) and (len(catalog) == 1)):
 				for (proto_name, port) in catalog.items():
 					yield (port, port, proto_name)
+			elif (specified_proto is not None) and (specified_proto in catalog):
+				yield (catalog[specified_proto], catalog[specified_proto], specified_proto)
 			else:
-				raise AmbiguousServiceException("Service is ambiguous: %s" % (match["name"]))
+				raise AmbiguousServiceException("Service is ambiguous: %s; service catalog entrie(s): %s" % (str(match), str(catalog)))
 		else:
 			if match["proto"] is None:
 				raise ProtocolOmittedException("When specifying an explicit service port, you need to specify the protocol(s) as well: %s" % (single_service))
