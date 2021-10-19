@@ -1,5 +1,5 @@
 #	firewalld - Linux firewall daemon with time-based capabilities
-#	Copyright (C) 2020-2020 Johannes Bauer
+#	Copyright (C) 2020-2021 Johannes Bauer
 #
 #	This file is part of firewalld.
 #

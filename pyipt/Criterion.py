@@ -1,5 +1,5 @@
 #	firewalld - Linux firewall daemon with time-based capabilities
-#	Copyright (C) 2020-2020 Johannes Bauer
+#	Copyright (C) 2020-2021 Johannes Bauer
 #
 #	This file is part of firewalld.
 #
@@ -20,6 +20,7 @@
 #	Johannes Bauer <JohannesBauer@gmx.de>
 
 import enum
+from pyipt.Tools import multisplit
 
 class CriterionType(enum.Enum):
 	State = "state"
@@ -37,14 +38,15 @@ class Criterion():
 			else:
 				raise NotImplementedError(self._criterion["state"])
 		elif self._type == CriterionType.DNSBlock:
-			hostname = self._criterion["dns-name"]
-			labels = hostname.split(".")
-			dns_pkt_data = bytearray()
-			for label in labels:
-				label = label.encode("ascii")
-				dns_pkt_data.append(len(label))
-				dns_pkt_data += label
-			rule.add_fixed(("--match", "string", "--hex-string", "|%s|" % (dns_pkt_data.hex()), "--algo", "bm", "--icase"))
+			hostname_str = self._criterion["dns-name"]
+			group = rule.add_group("layer7 DNS blocking")
+			for hostname in multisplit(hostname_str):
+				labels = hostname.split(".")
+				dns_pkt_data = bytearray()
+				for label in labels:
+					label = label.encode("ascii")
+					dns_pkt_data.append(len(label))
+					dns_pkt_data += label
+				group.append(("--match", "string", "--hex-string", "|%s|" % (dns_pkt_data.hex()), "--algo", "bm", "--icase"))
 		else:
 			raise NotImplementedError(self._type)
-
